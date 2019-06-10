@@ -1,0 +1,184 @@
+<html>
+<head>
+	<link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+	<script src="{{ url_for('static', filename='codemirror/lib/codemirror.js') }}"></script>
+	<link rel="stylesheet" href="{{ url_for('static', filename='codemirror/lib/codemirror.css') }}">
+	<script src="{{ url_for('static', filename='codemirror/addon/display/placeholder.js') }}"></script>
+</head>
+
+<body>
+	<script src="{{ url_for('static', filename='bootstrap/js/jquery-3.4.1.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+	<div class="container">
+		<div class="card" style="margin-top:10px">
+			<h5 class="card-header">{% if name : %}Edit scenario{% else %}Create new scenario{% endif %}</h5>
+			<div class="card-body">
+				<div class="input-group mb-3">
+					<div class="input-group-prepend">
+						<span class="input-group-text">Name : </span>
+					</div>
+					<input type="text" id="sceneName" class="form-control" placeholder="Name" value="{{ name }}">
+				</div>
+				<div class="card">
+					<h6 class="card-header">Template</h6>
+					<div class="card-body">
+						<textarea id="textArea" class="form-control" rows="5" placeholder="Type text template here..."></textarea>
+					</div>
+				</div>
+
+
+				<div class="form-group" style="margin-top:10px">
+					<label for="addVar">Variables : </label>
+					<div id="varList">
+						<button id="addVarLink" class="btn btn-primary" data-toggle="modal" data-target="#addVarDialog" data-varname="">+</button>
+					</div>
+				</div>
+
+				<div class="text-right">
+					<button class="btn btn-danger">Discard</button>
+					<button class="btn btn-success">Save</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="addVarDialog" tabindex="-1" role="dialog">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Add new variable</h5>
+					<button type="button" class="close" data-dismiss="modal">
+						<span>&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div class="input-group">
+						<div class="input-group-prepend">
+							<span class="input-group-text">Variable name : </span>
+						</div>
+						<input type="text" id="varName" name="varName" class="form-control" placeholder="Name">
+					</div>
+					<div class="input-group control-group before-add-more" style="margin-top:10px">
+						<div class="input-group-btn"> 
+							<button class="btn btn-success add-more" type="button">Add level</button>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger" data-dismiss="modal" id="delVarBtn">Delete variable</button>
+					<button type="button" class="btn btn-primary" data-dismiss="modal" id="saveVarBtn">Save changes</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="copy-value-template d-none">
+		<div class="control-group input-group" name="valueBox" style="margin-top:10px">
+			<input type="text" name="value" class="form-control" placeholder="Value">
+			<div class="input-group-btn"> 
+				<button class="btn btn-danger remove" type="button">Remove</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="copy-varButton-template d-none">
+		<button class="btn btn-primary" draggable="true" ondragstart="drag(event)" data-toggle="modal" data-target="#addVarDialog" data-varname="Hello" style="margin-right:5px">Hello</button>
+	</div>
+</div>
+<script type="text/javascript">
+	var variableList = {{ variables|tojson }};
+
+	function drag(event) {
+		event.dataTransfer.setData("text", '${' + event.target.textContent + '} ');
+	}
+
+	function addVariableBtn(name) {
+		var temp = $(".copy-varButton-template > .btn").clone();
+		temp.attr('data-varname', name);
+		temp.text(name);
+		console.log($('#addVarLink'));
+		$('#addVarLink').before(temp);
+	}
+
+	function addValueField(value) {
+		var temp = $(".copy-value-template > div").clone();
+		console.log($(".before-add-more"));
+		$(".before-add-more").before(temp);
+		if(value != '') {
+			temp.find('input').val(value);
+		}
+	}
+
+	$(document).ready(function() {
+
+		var cm = CodeMirror.fromTextArea(document.getElementById('textArea'));
+
+		for(var name in variableList) {
+			addVariableBtn(name);
+		}
+
+		$(".add-more").click(function(){ 
+			addValueField(''); 
+		});
+
+
+		$(".modal-body").on("click",".remove",function(){ 
+			$(this).parents(".control-group").remove();
+		});
+
+		$('#addVarDialog').on('show.bs.modal', function (event) {
+			$('.modal-body > div[name=valueBox]').remove();
+			var button = $(event.relatedTarget);
+			var name = button.data('varname');
+			var dialog = $(this)
+			console.log(name);
+			console.log(dialog.find('#varName'));
+			var nameBox = dialog.find('#varName');
+			if(name != '') {
+				nameBox.prop('disabled', true);
+				nameBox.val(name);
+				var value = variableList[name];
+				for(var i=0; i<value.length; i++) {
+					addValueField(value[i]);
+				}
+			}
+			else {
+				nameBox.val('');
+				nameBox.prop('disabled', false);
+			}
+		});
+
+		$('#addVarDialog').on('hide.bs.modal', function (event) {
+			$('.modal-body > div[name=valueBox]').remove();
+		});
+
+		$('#saveVarBtn').click(function(event) {
+			var valueFields = $('input[name=value]');
+			var values = [];
+			console.log(valueFields);
+			for(var i=0; i<valueFields.length; i++) {
+				if(valueFields[i].value != '')
+					values.push(valueFields[i].value);
+			}
+			console.log(values);
+			var name = $('#addVarDialog').find('#varName')[0].value;
+			console.log(name);
+			if(!(name in variableList)) {
+				addVariableBtn(name);
+			}
+			variableList[name] = values;
+		});
+
+		$('#delVarBtn').click(function(event) {
+			var name = $('#addVarDialog').find('#varName')[0].value;
+			$('#varList > button[data-varname=' + name + ']').remove();
+			delete variableList[name];
+		});
+	});
+</script>
+
+</body>
+
+
+</html>

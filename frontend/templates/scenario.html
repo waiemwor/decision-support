@@ -23,7 +23,7 @@
 				<div class="card">
 					<h6 class="card-header">Template</h6>
 					<div class="card-body">
-						<textarea id="textArea" class="form-control" rows="5" placeholder="Type text template here..."></textarea>
+						<textarea id="textArea" class="form-control" rows="5" placeholder="Type text template here...">{{ template }}</textarea>
 					</div>
 				</div>
 
@@ -87,23 +87,25 @@
 	</div>
 </div>
 <script type="text/javascript">
+	// List of all variables for the scene in JSON format. 
 	var variableList = {{ variables|tojson }};
 
+	// Drag event handler for the variables field.
 	function drag(event) {
 		event.dataTransfer.setData("text", '${' + event.target.textContent + '} ');
 	}
 
+	// Helper function for adding a variable button to the bottom of the page.
 	function addVariableBtn(name) {
 		var temp = $(".copy-varButton-template > .btn").clone();
 		temp.attr('data-varname', name);
 		temp.text(name);
-		console.log($('#addVarLink'));
 		$('#addVarLink').before(temp);
 	}
 
+	// Add one value field with specified value in the variable dialog.
 	function addValueField(value) {
 		var temp = $(".copy-value-template > div").clone();
-		console.log($(".before-add-more"));
 		$(".before-add-more").before(temp);
 		if(value != '') {
 			temp.find('input').val(value);
@@ -112,28 +114,28 @@
 
 	$(document).ready(function() {
 
-		var cm = CodeMirror.fromTextArea(document.getElementById('textArea'));
+		var cm = CodeMirror.fromTextArea(document.getElementById('textArea')); // Initialized textArea.
 
+		// Convert all variable name to a button on the bottom of the page.
 		for(var name in variableList) {
 			addVariableBtn(name);
 		}
 
+		// Assign event handler for "Add level" button in variable dialog.
 		$(".add-more").click(function(){ 
 			addValueField(''); 
 		});
 
-
+		// Assign event handler for "Remove" button in variable dialog.
 		$(".modal-body").on("click",".remove",function(){ 
 			$(this).parents(".control-group").remove();
 		});
 
+		// Assign event handler for when the variable dialog show up
 		$('#addVarDialog').on('show.bs.modal', function (event) {
-			$('.modal-body > div[name=valueBox]').remove();
 			var button = $(event.relatedTarget);
 			var name = button.data('varname');
 			var dialog = $(this)
-			console.log(name);
-			console.log(dialog.find('#varName'));
 			var nameBox = dialog.find('#varName');
 			if(name != '') {
 				nameBox.prop('disabled', true);
@@ -149,27 +151,27 @@
 			}
 		});
 
+		// Clear variables fields
 		$('#addVarDialog').on('hide.bs.modal', function (event) {
 			$('.modal-body > div[name=valueBox]').remove();
 		});
 
+		// Update the variables list when clicked "Save changes" button.
 		$('#saveVarBtn').click(function(event) {
 			var valueFields = $('input[name=value]');
 			var values = [];
-			console.log(valueFields);
 			for(var i=0; i<valueFields.length; i++) {
 				if(valueFields[i].value != '')
 					values.push(valueFields[i].value);
 			}
-			console.log(values);
 			var name = $('#addVarDialog').find('#varName')[0].value;
-			console.log(name);
 			if(!(name in variableList)) {
 				addVariableBtn(name);
 			}
 			variableList[name] = values;
 		});
 
+		// remove from the variables list when clicked "Delete variable" button.
 		$('#delVarBtn').click(function(event) {
 			var name = $('#addVarDialog').find('#varName')[0].value;
 			$('#varList > button[data-varname=' + name + ']').remove();
